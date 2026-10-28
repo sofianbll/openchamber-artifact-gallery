@@ -11,7 +11,7 @@ Fork and clone the repository, then use **Bun 1.4.3**:
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts
-bun test src/gallery.test.ts
+bun test src/
 bun run build
 git diff --exit-code -- panel/main.js service/main.js
 ```

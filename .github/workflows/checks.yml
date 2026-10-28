@@ -15,7 +15,7 @@ jobs:
         with:
           bun-version: 1.4.3
       - run: bun install --frozen-lockfile --ignore-scripts
-      - run: bun test src/gallery.test.ts
+      - run: bun test src/
       - run: bun run build
       - name: Repository installs must ship current bundles
         run: |

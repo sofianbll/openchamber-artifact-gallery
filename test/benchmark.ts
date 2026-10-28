@@ -6,21 +6,23 @@ import { Library } from '../src/library';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_PATH!);
 const root = join(import.meta.dir, '..'), library = new Library();
-const artifacts = Array.from({ length: 1000 }, (_, i) => ({ id: i.toString(16).padStart(64, '0'), title: `Carte ${i}`, kind: 'page', format: 'HTML', sessionId: 'ses_bench', messageId: `msg_${i}`, directory: '/bench', position: i, createdAt: 1793140000000 - i * 60_000, origin: 'render.page' }));
+const artifacts = Array.from({ length: 1000 }, (_, i) => ({ id: i.toString(16).padStart(64, '0'), title: `Carte ${i}`, kind: 'page', format: 'HTML', sessionId: 'ses_bench', messageId: `msg_${i}`, partId: String(i), directory: '/bench', position: i, createdAt: 1793140000000 - i * 60_000, origin: 'render.page' }));
 library.sessions.set('ses_bench', { id: 'ses_bench', title: 'Mesures galerie', directory: '/bench', projectId: 'bench', updated: 1, artifacts } as any);
 library.projects = [{ id: 'bench', name: 'Atelier', directory: '/bench' }];
 let firstIndexBytes = 0, repeatedIndexBytes = 0, previewReads = 0;
 const theme = { mode: 'dark', tokens: { background: '#171717', foreground: '#dedede', elevated: '#242424', elevatedForeground: '#dedede', muted: '#aaaaaa', mutedSurface: '#171717', subtle: '#171717', border: '#444444', hover: '#333333', active: '#555555', selection: '#333345', selectionForeground: '#dedede', focus: '#91a1ff', primary: '#91a1ff', primaryForeground: '#171717', primaryText: '#91a1ff', success: '#70d58b', warning: '#edca72', error: '#dd7777', info: '#91a1ff', font: 'Geist, sans-serif', mono: 'monospace', radius: '9px' } };
 const shell = `<!doctype html><style>html,body{margin:0;height:100%}iframe{width:100%;height:100%;border:0}</style><iframe id="guest" src="/panel/index.html" sandbox="allow-scripts"></iframe><script>
-const f=document.getElementById('guest');addEventListener('message',async e=>{if(e.source!==f.contentWindow||e.data.channel!=='openchamber.sdk')return;const m=e.data;
+const f=document.getElementById('guest'),storage={preferences:{pageSize:24}};addEventListener('message',async e=>{if(e.source!==f.contentWindow||e.data.channel!=='openchamber.sdk')return;const m=e.data;
 if(m.type==='hello'){f.contentWindow.postMessage({channel:m.channel,v:1,type:'ready',payload:{theme:${JSON.stringify(theme)},locale:'fr',directory:'/bench',session:{id:'ses_bench',title:'Benchmark',busy:false},surface:'page',connection:{connected:false,account:null},settings:{},item:null}},'*');return}
- let payload={};if(m.type==='workspace-read')payload={kind:'projects',state:'ready',projects:[{id:'bench',name:'Atelier',directory:'/bench'}]};if(m.type==='storage')payload={storage:true,op:'get',found:true,value:{pageSize:24}};
+ let payload={};if(m.type==='workspace-read')payload={kind:'projects',state:'ready',projects:[{id:'bench',name:'Atelier',directory:'/bench'}]};if(m.type==='storage'){const{op,key,value}=m.payload;if(op==='set')storage[key]=value;if(op==='delete')delete storage[key];payload=op==='get'?{storage:true,op,found:key in storage,...(key in storage?{value:storage[key]}:{})}:op==='keys'?{storage:true,op,keys:Object.keys(storage)}:{storage:true,op}};
 if(m.type==='service-request')payload=await(await fetch('/service',{method:'POST',body:JSON.stringify(m.payload)})).json();f.contentWindow.postMessage({channel:m.channel,v:1,type:'result',id:m.id,ok:true,payload},'*')});</script>`;
 const server = Bun.serve({ hostname: '127.0.0.1', port: 0, async fetch(req) {
   const url = new URL(req.url);
   if (url.pathname === '/') return new Response(shell, { headers: { 'content-type': 'text/html' } });
   if (url.pathname === '/service') {
-    const request = await req.json(), path = new URL(request.path, url.origin); let body: any = {};
+     const request = await req.json(), path = new URL(request.path, url.origin); let body: any = {};
+    if (path.pathname === '/cache-lock') body = { acquired: true };
+    if (path.pathname === '/cache') body = request.method === 'POST' ? { ok: true } : { running: false, snapshot: library.snapshot() };
     if (path.pathname === '/index') {
       body = 'index' in library ? (library as any).index(path.searchParams) : { artifacts: library.list(), status: library.status };
       const size = Buffer.byteLength(JSON.stringify(body)); if (!firstIndexBytes) firstIndexBytes = size; else repeatedIndexBytes = size;

@@ -15,8 +15,21 @@ export default defineConfig({
   description: 'Find, preview and reuse the artifacts your OpenChamber conversations made.',
   base: '/openchamber-artifact-gallery/',
   cleanUrls: false,
+  srcExclude: ['research/**'],
   lastUpdated: true,
-  head: [['meta', { name: 'theme-color', content: '#171717' }]],
+  head: [
+    ['meta', { name: 'theme-color', content: '#171717' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/openchamber-artifact-gallery/icon.svg' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:site_name', content: 'Artifact Gallery' }],
+    ['meta', { property: 'og:title', content: 'Artifact Gallery for OpenChamber' }],
+    ['meta', { property: 'og:description', content: 'Find, preview and reuse the artifacts your OpenChamber conversations made.' }],
+    ['meta', { property: 'og:image', content: 'https://sofianbll.github.io/openchamber-artifact-gallery/og-image.png' }],
+    ['meta', { property: 'og:image:width', content: '1200' }],
+    ['meta', { property: 'og:image:height', content: '630' }],
+    ['meta', { property: 'og:image:alt', content: 'Artifact Gallery — find, preview and reuse your OpenChamber artifacts' }],
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+  ],
   locales: {
     root: { label: 'English', lang: 'en', themeConfig: { nav: [{ text: 'Guide', link: '/guide' }, { text: 'Install', link: '/installation' }], sidebar: en } },
     fr: { label: 'Français', lang: 'fr', link: '/fr/', themeConfig: {

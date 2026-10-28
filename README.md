@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/public/icon.svg" width="96" height="96" alt="Artifact Gallery icon">
+</p>
+
 # Artifact Gallery for OpenChamber
 
 **Find the useful thing your conversation made. Bring it into the next one.**
@@ -104,7 +108,7 @@ has navigation and local search, in English and French:
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts
-bun test src/gallery.test.ts
+bun test src/
 bun run build
 bun run docs:build
 bun run package /absolute/path/to/new/openchamber-artifact-gallery-0.2.1

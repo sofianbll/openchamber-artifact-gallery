@@ -7,17 +7,38 @@ Le service local géré par l’hôte lit les sessions et fichiers explicitement
 référencés. Il ne parcourt pas tout le disque et ne redémarre pas OpenCode.
 
 L’index conserve identifiants, titres, chemins, dates et provenance, sans HTML ni
-octets de pièces jointes. Il est écrit atomiquement avec les permissions `0600` :
+octets de pièces jointes. Ce cache reconstructible utilise le stockage natif
+`host.storage`, isolé par instance OpenChamber et supprimé par l’hôte à la
+désinstallation. Les sources restent dans OpenCode et leurs fichiers d’origine.
+Ne publie pas les métadonnées privées du cache.
 
-```text
-$XDG_DATA_HOME/agent-os/gallery/index-v1.json
-# Par défaut : ~/.local/share/agent-os/gallery/index-v1.json
-```
+Le service conserve au maximum 400 Kio de métadonnées sérialisées, évince d’abord
+les sessions les plus anciennement modifiées et ignore celles trop grosses.
+Le panneau restaure avant le scan et sauvegarde son état terminé, y compris un
+scan en arrière-plan tant qu’il reste ouvert. Sa fermeture peut laisser le cache
+précédent ; sa réouverture retrouve le service et sauvegarde son état terminé.
+Une panne de stockage affiche un mode mémoire explicite, sans bloquer scan ni aperçus.
 
-Le nom historique `agent-os` préserve la compatibilité ; Agent-OS n’est pas requis.
-Cet index contient des métadonnées privées : ne le publie pas dans un rapport de bug.
+Les chunks restent sous 48 Kio de JSON UTF-8 par valeur. Le manifeste est écrit
+en dernier, puis les anciens chunks sont nettoyés. Deux générations, l’échappement
+JSON et la clé `preferences` séparée restent sous le quota hôte de 2 Mio.
+Un bail renouvelable côté service sérialise les panneaux ; ce n’est pas une
+transaction. Les chunks abandonnés sont nettoyés lors d’une sauvegarde suivante.
+
+L’ancien `$XDG_DATA_HOME/agent-os/gallery/index-v1.json` (par défaut
+`~/.local/share/agent-os/gallery/index-v1.json`) n’est jamais lu, migré ni supprimé
+automatiquement. Ses métadonnées privées restent jusqu’à sa suppression manuelle.
 
 ## Service local et aperçu HTML
+
+Les icônes de projets sont opportunistes et restent uniquement en mémoire, hors
+index et cache disque. Le panneau appelle `/project-icon` sur le service local
+authentifié, jamais directement l’API hôte. Le service demande une seule image d’un
+projet connu, sur l’origine locale reçue au sync, sans identifiants ni redirections.
+Les réponses 401/403/404 conservent l’initiale, sans recherche d’identifiants ni
+permission supplémentaire. **Réglages → Icônes des projets** arrête les requêtes,
+libère les URL objet et ignore les réponses tardives. Le SVG reste une image,
+jamais du HTML injecté.
 
 Le **service local n’est pas isolé par le système d’exploitation** : il utilise les
 droits de ton compte, via des requêtes loopback authentifiées gérées par OpenChamber.

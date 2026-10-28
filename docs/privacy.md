@@ -7,18 +7,36 @@ local service reads OpenCode sessions and explicitly referenced files. It does n
 crawl the filesystem or start/restart OpenCode.
 
 The metadata index contains IDs, titles, paths, dates and provenance, not HTML or
-attachment bytes. It is written atomically with mode `0600` to:
+attachment bytes. It is a reconstructible cache in native `host.storage`, isolated
+by OpenChamber instance and removed by the host on uninstall. Sources stay in
+OpenCode and their original files. Do not publish private cache metadata.
 
-```text
-$XDG_DATA_HOME/agent-os/gallery/index-v1.json
-# Default: ~/.local/share/agent-os/gallery/index-v1.json
-```
+The service keeps at most 400 KiB of serialized metadata, evicting oldest updated
+sessions first and skipping oversized sessions. The panel restores before scanning
+and saves completed scans, including background scans while it remains open.
+Closing it can leave the previous cache; reopening reconnects to the service and
+saves its completed state. Storage failures explicitly show memory-only mode;
+scanning and previews remain available.
 
-The historical `agent-os` directory name preserves compatibility with the first
-local release; you do not need Agent-OS installed. This index contains private
-metadata. Do not include it in a public bug report.
+Chunks stay at or below 48 KiB of UTF-8 JSON per value. The manifest is committed
+last, then old chunks are cleaned. Two generations, JSON escaping and the separate
+`preferences` key fit below the 2 MiB host quota. A renewable service lease
+serializes panels; this is not a storage transaction. Abandoned chunks are cleaned
+on a subsequent save.
+
+The former `$XDG_DATA_HOME/agent-os/gallery/index-v1.json` (default
+`~/.local/share/agent-os/gallery/index-v1.json`) is never read, migrated or deleted
+automatically. Its private metadata remains until you remove that old file yourself.
 
 ## Two different boundaries
+
+Project icons are best effort and memory-only, never part of the metadata index or
+disk cache. The panel calls the authenticated local service's `/project-icon` route,
+not the host API directly. The service only requests one known project's image on
+the local origin received during sync, without credentials or redirects. Host
+401/403/404 responses keep initials; no credential lookup or extra permission is
+used. **Gallery settings → Project icons** disables loading and releases cached
+object URLs, ignoring late responses. SVG is displayed only as an image, not HTML.
 
 **The local service is not an OS sandbox.** It runs with your user account's access,
 behind authenticated loopback requests managed by OpenChamber. Its purpose is to

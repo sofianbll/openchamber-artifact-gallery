@@ -17,8 +17,28 @@ SDK workspace API. If access is refused, classification stays unavailable; no
 credential lookup is attempted to circumvent that refusal.
 
 The full page has a space explorer. Panel and narrow views expose it through
-**Explore** under All. The SDK's project objects have no custom icons, so initials
-are used. Dates use the device's local timezone.
+**Explore** under All. Dates use the device's local timezone.
+
+### Project icons
+
+SDK projects contain only ID/name/directory. Initials render immediately; the panel
+uses the authenticated service `GET /project-icon?id=…&origin=…&theme=light|dark`.
+Only IDs from the latest `/sync` and its exact validated loopback origin are accepted.
+The service GETs the internal, version-specific host route
+`/api/projects/{encodeURIComponent(id)}/icon?theme=…` with no credentials,
+`redirect: 'error'`, a 2.5-second timeout and a streamed 5 MiB limit. PNG, JPEG, SVG,
+WebP and ICO MIME types only return `{mime,data}` (base64); other results return
+`null`. Authentication failures keep the initial without credential lookup.
+
+The panel converts base64 to Blob/object URL and uses `<img alt="">`, never inline
+SVG. Its memory-only cache has at most 200 entries and 16 MiB of image file bytes
+(before base64), keyed by origin/project/theme, with two requests in flight.
+Eviction replaces displayed images with initials before revoking their URLs;
+failures and evicted bytes are memoized to avoid retries on every render. Reopening,
+toggling the setting or switching origin/theme starts fresh. Disabled mode ignores
+late replies and makes no new requests. Closure also releases URLs. These bounds
+do not cap decoded image memory or total RAM. **Project icons** is enabled by default
+and saved in the existing native preferences; icons never enter storage or the index.
 
 ## Reusing an artifact
 
@@ -71,10 +91,18 @@ uses its fixed manifest label **Artifact Gallery**.
   `file.open`, assistant Markdown links to local deliverables, image/PDF attachments.
   Code patches and incidental tool logs are excluded. This is not a filesystem crawl.
 - The metadata index stores IDs, titles, paths, dates and provenance, never HTML or
-  attachment bytes. For compatibility with the initial local release, it lives at
-  `$XDG_DATA_HOME/agent-os/gallery/index-v1.json`, defaulting to
-  `~/.local/share/agent-os/gallery/index-v1.json`. Writes are atomic, mode `0600`.
-  This historical directory name does not require an Agent-OS installation.
+  attachment bytes. The runtime index is memory-only, bounded to 400 KiB of
+  serialized metadata; oldest updated sessions are evicted and oversized sessions
+  skipped. The panel restores before sync and exports completed scans via `/cache`.
+  Restore uploads stay below the SDK's 64,000-character request limit.
+  Instance-scoped `host.storage` chunks (`gallery-index:<generation>:<n>`) stay
+  at or below 48 KiB of UTF-8 JSON. `gallery-index:manifest` is committed last,
+  then old chunks are removed. Two generations plus JSON escaping and the untouched
+  `preferences` key fit below the 2 MiB/2000-key quota. A renewable 60-second service
+  lease serializes panels and recovers after closure. This is not a transaction.
+  Failed storage explicitly falls back to memory-only mode. The host removes native
+  storage on uninstall. No runtime index uses `agent-os`; the old file is never
+  read, migrated or deleted automatically. See [privacy](privacy.md).
 - Each preview rechecks the source message and reads the current file. Deleted or
   moved sources can become unavailable. References are not backups.
 - Resource bytes are temporary: keys expire after two minutes, with a 64 MiB cache
@@ -130,5 +158,6 @@ For folder installs, disable **Artifact Gallery** before replacing its installed
 folder, then re-enable it. Keep an older release folder to roll back. Remove
 unregisters the extension; it does not delete conversations or deliverables.
 
-To rebuild the derived index, disable the gallery and move only `index-v1.json`
-aside, then enable it again. Keep private index files out of issue reports.
+Refresh reconstructs missing/evicted metadata from sources. To clear all native
+extension storage, uninstall and reinstall (this also resets preferences). Neither
+operation deletes sources or the old legacy file. Keep private caches out of reports.

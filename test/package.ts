@@ -15,7 +15,7 @@ const files = await readdir(folder, { recursive: true });
 assert(!files.some(file => /node_modules|\.env|index-v1|auth\.json|\/Users\//.test(file)));
 for (const file of files.filter(file => /^((README|CONTRIBUTING)\.md|docs\/.*\.md)$/.test(file))) {
   const text = await readFile(join(folder, file), 'utf8');
-  for (const [, link] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+  for (const [, link] of [...text.matchAll(/\]\(([^)\s]+)\)/g), ...text.matchAll(/<img\b[^>]*\bsrc=["']([^"']+)["']/gi)]) {
     if (/^(https?:|#)/.test(link)) continue;
     const target = resolve(folder, file, '..', link.split('#')[0]);
     assert(await Bun.file(target).exists(), `Missing packaged documentation link: ${file} → ${link}`);

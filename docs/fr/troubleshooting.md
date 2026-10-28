@@ -42,9 +42,12 @@ ne font pas partie du contrat SDK 2.5.2. [Détails](appearance.md).
 
 ## Reconstruire l’index
 
-Désactive l’extension, déplace uniquement `index-v1.json` de côté, puis réactive
-et actualise. Consulte son [emplacement](privacy.md#ce-qui-reste-sur-ta-machine).
-Garde l’ancien fichier jusqu’à la fin du scan ; ne supprime pas les sources.
+Actualise pour reconstruire les entrées absentes ou évincées. Un avertissement de
+cache indique un mode mémoire : la galerie reste utilisable ; réessaie ou rouvre
+le panneau. Il doit rester ouvert pour sauvegarder un scan terminé en arrière-plan.
+Pour vider tout le stockage natif, désinstalle puis réinstalle ; les préférences
+seront aussi réinitialisées, jamais les sources. L’ancien index `agent-os` n’est
+plus utilisé, ni migré ou supprimé automatiquement. Voir [le stockage](privacy.md).
 
 ## Signaler un problème
 

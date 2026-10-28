@@ -15,6 +15,15 @@ la galerie. Les polices web non embarquées peuvent utiliser une police de repli
 Une synchronisation complète nécessite une évolution de l’hôte et du SDK.
 :::
 
+## Icônes des projets
+
+**Réglages de la galerie → Icônes des projets** est activé par défaut. L’explorateur
+et son menu affichent immédiatement l’initiale, puis essaient l’image originale ou
+personnalisée du projet pour le thème courant. Ce chargement est opportuniste : une
+image absente ou une authentification exigée par l’hôte conserve l’initiale.
+Désactiver libère les images et arrête les requêtes. Seul le réglage est conservé ;
+les images restent en mémoire.
+
 ## Choisir la langue
 
 Dans **Réglages de la galerie → Langue** :

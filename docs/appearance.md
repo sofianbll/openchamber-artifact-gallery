@@ -15,6 +15,14 @@ values. Nonbundled web fonts can fall back to installed fonts. Complete appearan
 synchronization requires host/SDK support.
 :::
 
+## Project icons
+
+**Gallery settings → Project icons** is enabled by default. The explorer and its
+menu show the initial immediately, then try the project's original/custom image
+for the current theme. This is best effort: missing images or host authentication
+requirements keep the initial. Turning it off releases images and stops requests.
+Only this preference is saved; image bytes stay in memory.
+
 ## Choose a language
 
 Open **Gallery settings → Language**:

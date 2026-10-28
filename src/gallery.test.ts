@@ -1,5 +1,5 @@
 import { test, expect } from 'bun:test';
-import { mkdtemp, readFile, writeFile, rm, stat, utimes } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { extractArtifacts, imageSources, pageContent } from './artifacts';
@@ -60,7 +60,7 @@ test('images match native quoted paths and CSS references without scanning unrel
 test('index is metadata-only, refresh preserves failures, preview reads the current source', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'gallery-test-'));
   try {
-    const document = join(dir, 'report.md'), cache = join(dir, 'index.json');
+    const document = join(dir, 'report.md');
     await writeFile(document, 'First version');
     let source: any = message([render('<h1>Private HTML body</h1>'), { type: 'text', text: `[Report](${document})` }]);
     let failed = false, updated = 1, scans = 0;
@@ -71,14 +71,16 @@ test('index is metadata-only, refresh preserves failures, preview reads the curr
       if (path.includes('/message/')) { if (!source) throw Error('Deleted'); return { data: source }; }
       return { data: { id: 'ses_1' } };
     };
-    const library = new Library(cache, async () => api);
-    await library.load(); await library.sync([]); await library.settled();
+    const library = new Library(async () => api);
+    await library.sync([]); await library.settled();
     expect(library.list()).toHaveLength(2);
-    const persisted = await readFile(cache, 'utf8');
+    const persisted = JSON.stringify(library.snapshot());
     expect(persisted).not.toContain('<h1>'); expect(persisted).not.toContain('First version');
-    await utimes(cache, 1, 1);
     await library.sync([]); await library.settled(); expect(scans).toBe(1);
-    expect((await stat(cache)).mtimeMs).toBe(1000);
+    expect(JSON.stringify(library.snapshot())).toBe(persisted);
+    const restored = new Library(async () => api); restored.restore(JSON.parse(persisted));
+    await restored.sync([]); await restored.settled(); expect(scans).toBe(1);
+    restored.restore({ version: 1, sessions: [] }); expect(restored.list()).toHaveLength(2);
     failed = true; updated = 2; await library.sync([]); await library.settled();
     expect(library.status.failed).toBe(1); expect(library.list()).toHaveLength(2);
     const file = library.list().find(a => a.path)!;
@@ -103,7 +105,7 @@ test('scoped index separates managed Chats from unknown sources and replaces pag
     ];
     const api = async (path: string) => path === '/api/project' ? [] : path.startsWith('/api/session?') ? { data: infos, cursor: {} }
       : path.includes('/message?') ? { data: [message(Array.from({ length: path.includes('ses_project') ? 30 : 1 }, (_, i) => ({ ...render(`<h1>Artifact ${i}</h1>`), id: `call-${i}` })))], cursor: {} } : {};
-    const library = new Library(join(dir, 'index.json'), async () => api, async () => ['/configured/chats', '/canonical/chats']);
+    const library = new Library(async () => api, async () => ['/configured/chats', '/canonical/chats']);
     await library.sync([{ id: 'p1', name: 'One', directory: '/work/one' }], undefined, 'http://127.0.0.1:1234'); await library.settled();
     const params = new URLSearchParams({ scope: 'all', project: 'chats', session: 'ses_project', size: '12' });
     const chats = library.index(params);

@@ -32,9 +32,9 @@ const demos = [
 const now = Date.UTC(2026, 9, 28, 15), location = { directory: '/demo/studio', project: { id: 'studio', directory: '/demo/studio' } };
 const items = demos.map(([title, sessionTitle, project], i) => ({ id: String(i).padStart(64, '0'), title, sessionTitle, sessionId: `ses_demo${i}`, messageId: `msg_demo${i}`, directory: `/demo/${project}`, createdAt: now - i * 3600000, origin: 'render.page', kind: 'page', format: 'HTML' }));
 const sessions = items.map(item => ({ id: item.sessionId, title: item.sessionTitle, projectID: item.directory.split('/').pop(), location: { ...location, directory: item.directory }, time: { created: item.createdAt, updated: item.createdAt }, agent: 'build', model: { providerID: 'demo', id: 'demo' } }));
-const library = new Library('/unused-public-screenshot-index');
+const library = new Library();
 library.projects = projects.map(p => ({ id: p.id, name: p.name, directory: p.path }));
-for (const item of items) library.sessions.set(item.sessionId, { id: item.sessionId, title: item.sessionTitle, directory: item.directory, projectId: null, updated: 1, artifacts: [item] } as any);
+for (const item of items) library.sessions.set(item.sessionId, { id: item.sessionId, title: item.sessionTitle, directory: item.directory, projectId: null, updated: 1, artifacts: [{ ...item, position: 0, partId: 'fixture' }] } as any);
 const guest = toPublicGuest({ ...inspected.guest, enabled: true, source: 'git', capabilityGrants: ['sessions', 'service'] });
 assert.equal(guest.version, manifest.version);
 assert.equal(guest.pageEntry, 'panel/index.html');
@@ -42,6 +42,7 @@ assert.equal(guest.service.granted, true);
 const model = { id: 'demo/demo', providerID: 'demo', modelID: 'demo', name: 'Demo model', variants: [], modalities: { input: ['text'], output: ['text'] }, limit: { context: 200000, output: 8000 }, cost: { input: 0, output: 0 } };
 let settings = { projects, activeProjectId: 'studio', themeMode: 'dark', darkThemeId: 'openchamber-dark', lightThemeId: 'openchamber-light', locale: 'en', defaultModel: 'demo/demo', defaultAgent: 'build' };
 let preferences: any = { automatic: false }, draft: any = {};
+const storage = new Map<string, any>();
 const sends: string[] = [];
 const server = Bun.serve({ hostname: '127.0.0.1', port: 0, async fetch(req, server) {
   const url = new URL(req.url), p = url.pathname;
@@ -61,9 +62,15 @@ const server = Bun.serve({ hostname: '127.0.0.1', port: 0, async fetch(req, serv
   if (p.endsWith('/service/request')) {
     const request = await req.json(), path = new URL(request.path, url.origin), index = items.findIndex(item => item.id === path.searchParams.get('id'));
     const html = index < 0 ? '' : `<style>body{padding:30px}h1{font-size:26px;margin:0 0 24px}h2{font-size:20px}.oc-box{padding:20px}.stats,.swatches{display:flex;gap:16px}.stats>div{flex:1}strong{font-size:44px}.swatches>div{padding:50px 20px;color:#fff;flex:1;border-radius:9px}.flow{display:flex;align-items:center;gap:12px}.flow>div{flex:1}</style>${demos[index][3]}`;
-    return json({ status: 200, body: JSON.stringify(path.pathname === '/index' ? library.index(path.searchParams) : path.pathname === '/item' ? library.item(path.searchParams.get('id')!) : path.pathname === '/preview' ? { kind: 'page', html, images: [], missing: [] } : { ok: true }) });
+    return json({ status: 200, body: JSON.stringify(path.pathname === '/cache-lock' ? { acquired: true } : path.pathname === '/cache' ? request.method === 'POST' ? { ok: true } : { running: false, snapshot: library.snapshot() } : path.pathname === '/index' ? library.index(path.searchParams) : path.pathname === '/item' ? library.item(path.searchParams.get('id')!) : path.pathname === '/preview' ? { kind: 'page', html, images: [], missing: [] } : { ok: true }) });
   }
-  if (p.endsWith('/storage')) { const body = await req.json(); if (body.op === 'set') preferences = body.value; return json(body.op === 'get' ? { storage: true, op: 'get', found: true, value: preferences } : { storage: true, op: body.op }); }
+  if (p.endsWith('/storage')) {
+    const { op, key, value } = await req.json();
+    if (op === 'set') { if (key === 'preferences') preferences = value; else storage.set(key, value); }
+    if (op === 'delete') storage.delete(key);
+    const found = key === 'preferences' || storage.has(key);
+    return json(op === 'get' ? { storage: true, op, found, ...(found ? { value: key === 'preferences' ? preferences : storage.get(key) } : {}) } : op === 'keys' ? { storage: true, op, keys: ['preferences', ...storage.keys()] } : { storage: true, op });
+  }
   if (p === '/api/config/settings') { if (req.method === 'PUT') settings = { ...settings, ...await req.json() }; return json(settings); }
   if (p === '/api/guests') return json({ guests: [guest] });
   if (p.includes('/auth/') || p.startsWith('/auth/')) return json({ authenticated: true, required: false, token: 'synthetic-only', expiresAt: Date.now() + 3600000 });

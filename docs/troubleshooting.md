@@ -42,9 +42,11 @@ part of SDK 2.5.2's guest theme contract. [Appearance details](appearance.md).
 
 ## Rebuild the derived index
 
-Disable the extension, move only `index-v1.json` aside, then enable the extension
-and refresh. See its [location](privacy.md#what-stays-on-your-machine). Keep the old
-file until the new scan is complete; do not delete source conversations or files.
+Refresh to reconstruct missing/evicted metadata. A cache warning means memory-only
+mode: the gallery remains usable; retry refresh or reopen the panel. Keep it open
+to persist a finished background scan. To clear native storage entirely, uninstall
+and reinstall; this also resets preferences, never sources. The old `agent-os`
+index is unused and never migrated or removed automatically. See [storage](privacy.md).
 
 ## Report a problem
 

@@ -6,7 +6,7 @@ dépendances verrouillées du dépôt.
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts
-bun test src/gallery.test.ts
+bun test src/
 bun run build
 bun run docs:build
 ```

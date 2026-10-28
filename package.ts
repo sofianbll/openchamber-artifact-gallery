@@ -16,7 +16,7 @@ assert(parseManifestJson(JSON.stringify(manifest)).ok, 'Invalid distribution man
 await writeFile(join(output, 'package.json'), JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
 const guides = ['guide', 'installation', 'browse', 'reuse', 'appearance', 'privacy', 'troubleshooting', 'development', 'reference', 'compatibility'];
 const screenshots = ['gallery', 'preview', 'reuse', 'light', 'settings', 'french', 'narrow'];
-const files = ['README.md', 'CONTRIBUTING.md', 'CHANGELOG.md',
+const files = ['README.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'docs/public/icon.svg',
   ...guides.flatMap(name => [`docs/${name}.md`, `docs/fr/${name}.md`]),
   ...screenshots.map(name => `docs/assets/host-${name}.png`),
   'panel/index.html', 'panel/main.js', 'panel/styles.css', 'service/main.js', 'assets/LICENSE', 'vendor/LICENSE', 'vendor/OPENCODE-LICENSE', 'vendor/README.md'];

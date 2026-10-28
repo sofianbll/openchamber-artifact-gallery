@@ -8,7 +8,7 @@ for pull requests and preserved behavior.
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts
-bun test src/gallery.test.ts
+bun test src/
 bun run build
 ```
 
@@ -16,6 +16,8 @@ bun run build
 
 - `src/artifacts.ts`: explicit artifact recognition and stable source IDs.
 - `src/library.ts`: source reads, metadata index, classification and preview cache.
+- `src/cache.ts`: bounded metadata snapshots, UTF-8 chunks and native storage manifests;
+  `src/cache.test.ts` covers quota, eviction, corruption and interrupted writes.
 - `src/service.ts`: authenticated host-managed HTTP service.
 - `src/panel.ts`, `panel/styles.css`: SDK UI, navigation and bounded loading.
 - `src/locale.ts`: French/English UI strings and locale preference.

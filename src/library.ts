@@ -1,16 +1,15 @@
 import { Service } from '@opencode/client/service';
-import { mkdir, readFile, writeFile, rename, open } from 'node:fs/promises';
-import { join, basename } from 'node:path';
-import { homedir } from 'node:os';
+import { open } from 'node:fs/promises';
+import { basename } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { extractArtifacts, pageContent, previousDirectory, imageSources, pathFromSource, type Artifact } from './artifacts';
+import { boundedSnapshot, validateSnapshot, type CachedSession } from './cache';
 
-type Session = { id: string; title: string; directory: string | null; projectId: string | null; updated: number; artifacts: Artifact[] };
+type Session = CachedSession;
 type Project = { id: string; name: string; directory: string };
 type Space = { id: string; name: string; kind: 'project' | 'chats' | 'unknown' };
 export type ReadApi = (path: string) => Promise<any>;
 export class GalleryError extends Error { constructor(public status: number, message: string) { super(message); } }
-export const cachePath = join(process.env.XDG_DATA_HOME || join(homedir(), '.local/share'), 'agent-os/gallery/index-v1.json');
 
 const normalized = (path: string) => path.replace(/\\/g, '/').replace(/\/+$/, '') || '/';
 const within = (directory: string | null, root: string) => Boolean(directory && !directory.split(/[\\/]/).some(p => p === '.' || p === '..') && (normalized(directory) === normalized(root) || normalized(directory).startsWith(normalized(root).replace(/\/$/, '') + '/')));
@@ -70,31 +69,18 @@ export class Library {
   status = { running: false, done: 0, total: 0, failed: 0, error: '', refreshedAt: 0 };
   private job: Promise<void> | null = null;
   private api: ReadApi | null = null;
-  private dirty = false;
+  private restored = false;
   private resources = new Map<string, { bytes: Buffer; mime: string; expires: number }>();
-  constructor(private file = cachePath, private connect = localReader, private readChats = readChatRoots) {}
-
-  async load() {
-    try {
-      const saved = JSON.parse(await readFile(this.file, 'utf8'));
-      if (saved.version !== 1 || !Array.isArray(saved.sessions)) throw Error('Invalid index');
-      for (const session of saved.sessions) {
-        if (typeof session.id !== 'string' || !Array.isArray(session.artifacts)) throw Error('Invalid session');
-        this.sessions.set(session.id, session);
-      }
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') { this.sessions.clear(); this.status.error = 'Index local illisible : il sera reconstruit depuis les sources.'; }
-    }
+  constructor(private connect = localReader, private readChats = readChatRoots) {}
+  restore(value: unknown) {
+    const saved = validateSnapshot(value);
+    if (this.restored || this.job || this.classifying || this.sessions.size) return;
+    this.sessions = new Map(saved.sessions.map(session => [session.id, session]));
+    this.restored = true;
   }
-  private async save() {
-    const directory = join(this.file, '..');
-    await mkdir(directory, { recursive: true, mode: 0o700 });
-    const temp = `${this.file}.${randomUUID()}.tmp`;
-    await writeFile(temp, JSON.stringify({ version: 1, sessions: [...this.sessions.values()] }), { mode: 0o600 });
-    await rename(temp, this.file);
-    this.dirty = false;
-  }
+  snapshot() { return boundedSnapshot(this.sessions.values()); }
   async sync(projects: Project[], sessionId?: string, hostOrigin?: string) {
+    this.restored = true;
     this.projects = projects;
     if (this.job || this.classifying) return;
     this.classifying = true;
@@ -131,14 +117,12 @@ export class Library {
         const previous = this.sessions.get(info.id);
         if (!previous || previous.updated !== info.time?.updated) {
           this.sessions.set(info.id, await scanSession(info, api));
-          this.dirty = true;
+          this.sessions = new Map(this.snapshot().sessions.map(session => [session.id, session]));
         }
       } catch { this.status.failed++; }
       this.status.done++;
-      if (this.dirty && this.status.done % 20 === 0) await this.save();
     }
     // Keep dead references recognisable; every preview checks its original message again.
-    if (this.dirty) await this.save();
     this.status.refreshedAt = Date.now();
   }
   private space(directory: string | null, projectId?: string | null): Space {

@@ -3,10 +3,12 @@ import { applyHostReady, mountButton, mountSearchField, mountSelect } from '@ope
 import { fontCss, previewDocument, previewThemeMessage } from './preview';
 import type { Library } from './library';
 import { locale, setLocale, t, type Language } from './locale';
+import { chunksFor, readCache, persistCache, withCacheLease } from './cache';
+import { ProjectIcons } from './project-icons';
 
 type Item = ReturnType<Library['list']>[number];
 type Index = ReturnType<Library['index']>;
-type Preferences = { previews: 'visible' | 'manual'; density: 'comfortable' | 'compact'; pageSize: 12 | 24; automatic: boolean; language: Language };
+type Preferences = { previews: 'visible' | 'manual'; density: 'comfortable' | 'compact'; pageSize: 12 | 24; automatic: boolean; projectIcons: boolean; language: Language };
 const host = connectHost(), app = document.getElementById('app')!;
 // Embedded fonts also work behind the host's per-document guest asset token.
 const fonts = document.createElement('style'); fonts.textContent = fontCss; document.head.append(fonts);
@@ -16,13 +18,35 @@ const kinds: Record<string, string> = { page: 'Pages inline', image: 'Images', d
 let context: HostReadyContext, initialized = false, mounted = false;
 let items: Item[] = [], spaces: NonNullable<Index['spaces']> = [], result: Index | null = null;
 let scope: 'session' | 'space' | 'all' = 'session', project = 'all', type = 'all', query = '', page = 1;
-let settings: Preferences = { previews: 'visible', density: 'comfortable', pageSize: 12, automatic: true, language: 'auto' };
+let settings: Preferences = { previews: 'visible', density: 'comfortable', pageSize: 12, automatic: true, projectIcons: true, language: 'auto' };
+const projectIcons = new ProjectIcons(request);
+let iconProjects = new Set<string>();
 let lastSync = 0, refreshing = false, fetching = false, pending = false, viewEpoch = 0, version = '', generation = 0;
 let timer: ReturnType<typeof setTimeout>, searchTimer: ReturnType<typeof setTimeout>, contextTimer: ReturnType<typeof setTimeout>;
 let saveQueue = Promise.resolve(), pendingFocus = '';
 let pendingItem: string | null = null;
 let modalVersion = 0, activePreview: HTMLIFrameElement | null = null;
 let detail: Item | null = null;
+let cacheReady = false, cacheRestored = false, cacheSaving = false, disposed = false, cacheWarning = '';
+let cacheTimer: ReturnType<typeof setTimeout>;
+
+function withCacheStorage<T>(action: (storage: typeof host.storage, owner: string, renew: () => Promise<void>) => Promise<T>): Promise<T> {
+  return withCacheLease(host.storage, request, () => disposed, action);
+}
+function cacheFailed() { cacheWarning = 'Cache indisponible : mode mémoire, reconstruction depuis les sources.'; renderStatus(); }
+async function persistWhenSettled() {
+  if (cacheSaving || disposed) return;
+  cacheSaving = true; clearTimeout(cacheTimer);
+  try {
+    const running = await withCacheStorage(async storage => {
+      const saved = await request('/cache');
+      return persistCache(storage, saved, cacheRestored);
+    });
+    if (running) { cacheTimer = setTimeout(() => void persistWhenSettled(), 1500); return; }
+    cacheWarning = ''; renderStatus();
+  } catch { cacheFailed(); }
+  finally { cacheSaving = false; }
+}
 const header = el('header', 'toolbar'), actions = el('div', 'toolbar-actions'), scopes = el('div', 'scope-tabs'), scopeContext = el('div', 'scope-context');
 const layout = el('div', 'gallery-layout'), explorer = el('nav', 'explorer'), work = el('div', 'gallery-work'), controls = el('div', 'controls');
 const notice = el('p', 'notice'), errorLine = el('p', 'error'), content = el('section', 'content'), destination = el('p', 'destination');
@@ -30,7 +54,8 @@ notice.setAttribute('role', 'status'); errorLine.setAttribute('role', 'alert'); 
 scopes.setAttribute('role', 'group'); scopes.setAttribute('aria-label', 'Portée de la galerie');
 const dialog = document.createElement('dialog'); dialog.className = 'preview-dialog'; dialog.setAttribute('aria-labelledby', 'preview-title');
 const projectMenu = el('div', 'project-menu'); projectMenu.setAttribute('popover', 'auto');
-const exploreButton = button('Explorer', () => { renderSpaces(projectMenu); projectMenu.showPopover(); }, 'plain-button explore-button');
+const exploreButton = button('Explorer', () => projectMenu.showPopover(), 'plain-button explore-button');
+projectMenu.addEventListener('toggle', () => renderSpaces(projectMenu));
 let search: ReturnType<typeof mountSearchField>, typePicker: ReturnType<typeof mountSelect>, settingsButton: ReturnType<typeof mountButton>, refreshButton: ReturnType<typeof mountButton>;
 
 // Bound source reads across thumbnails and the expanded preview, including resource chunks.
@@ -66,11 +91,15 @@ function renderSpaces(root: HTMLElement) {
   for (const space of choices) {
     const node = button('', () => setProject(space.id), 'space-button');
     node.setAttribute('aria-label', t('Explorer {name}', { name: space.name })); node.setAttribute('aria-pressed', String(scope === 'all' && project === space.id));
-    node.append(el('span', 'space-icon', space.id === 'chats' ? '◌' : space.name.slice(0, 1).toLocaleUpperCase(locale)), el('span', 'space-name', space.name), el('span', 'space-count', String(space.count))); root.append(node);
+    const icon = el('span', 'space-icon', space.id === 'chats' ? '◌' : space.name.slice(0, 1).toLocaleUpperCase(locale)); icon.dataset.initial = icon.textContent ?? '';
+    node.append(icon, el('span', 'space-name', space.name), el('span', 'space-count', String(space.count))); root.append(node);
+    if (iconProjects.has(space.id) && (root !== projectMenu || projectMenu.matches(':popover-open'))) projectIcons.attach(icon, space.id);
   }
+  projectIcons.prune();
 }
 function renderChrome() {
   if (!mounted) return;
+  projectIcons.configure(settings.projectIcons, location.origin, context.theme.mode);
   document.documentElement.lang = locale; document.title = t('Galerie'); header.querySelector('h1')!.textContent = t('Galerie');
   content.setAttribute('aria-label', t('Artefacts')); explorer.setAttribute('aria-label', t('Explorer les espaces')); scopes.setAttribute('aria-label', t('Portée de la galerie'));
   exploreButton.textContent = t('Explorer'); settingsButton.update({ label: t('Réglages') }); refreshButton.update({ label: t('Actualiser') });
@@ -123,7 +152,7 @@ function renderStatus() {
   if (!result) return;
   const s = result.status;
   notice.textContent = [t('{count} artefacts', { count: result.total }), t(settings.previews === 'manual' ? 'aperçus à la demande' : '6 aperçus maximum'), ...(s.running ? [t('collecte {done}/{total}', { done: s.done, total: s.total || '…' })] : []), ...(s.failed ? [t('{count} sessions non lues', { count: s.failed })] : [])].join(' · ');
-  errorLine.textContent = t(s.error || result.warning || '');
+  errorLine.textContent = [s.error, result.warning, cacheWarning].filter(Boolean).map(message => t(message)).join(' · ');
 }
 function updateLanguage() {
   if (!setLocale(context.locale, settings.language) || !mounted) return;
@@ -131,13 +160,16 @@ function updateLanguage() {
   if (dialog.open) { if (dialog.classList.contains('settings-dialog')) openSettings(); else if (detail) void openDetail(detail); }
 }
 async function refresh(force = false) {
-  if (refreshing || !mounted) return;
+  if (refreshing || !mounted || !cacheReady) return;
   clearTimeout(timer); refreshing = true;
   try {
     if (force || settings.automatic && Date.now() - lastSync > 45_000) {
       const snapshot = await host.listProjects();
       if (snapshot.state !== 'ready') { timer = setTimeout(() => void refresh(true), 3000); throw Error('Chargement des projets OpenChamber…'); }
       await request('/sync', { projects: snapshot.projects, sessionId: context.session?.id, hostOrigin: location.origin }); lastSync = Date.now();
+      iconProjects = new Set(snapshot.projects.map(p => p.id));
+      projectIcons.retain(iconProjects);
+      void persistWhenSettled();
     }
     await loadIndex();
   } catch (error) { report(error); }
@@ -149,7 +181,7 @@ function followContext() {
   clearTimeout(contextTimer); contextTimer = setTimeout(() => void loadIndex(), 0);
 }
 document.addEventListener('visibilitychange', () => { if (!mounted) return; scheduleThumbnails(); if (document.visibilityState === 'visible') void refresh(); else clearTimeout(timer); });
-window.addEventListener('pagehide', () => { clearTimeout(timer); clearTimeout(searchTimer); clearTimeout(contextTimer); clearThumbnails(); host.dispose(); });
+window.addEventListener('pagehide', () => { disposed = true; projectIcons.clear(); clearTimeout(cacheTimer); clearTimeout(timer); clearTimeout(searchTimer); clearTimeout(contextTimer); clearThumbnails(); host.dispose(); });
 
 const frameSizes = new ResizeObserver(entries => { for (const entry of entries) { const frame = entry.target.querySelector<HTMLIFrameElement>('.thumbnail-frame'); if (frame) frame.style.transform = `scale(${entry.contentRect.width / 720})`; } });
 const observer = new IntersectionObserver(entries => { for (const entry of entries) (entry.target as HTMLElement).dataset.visible = String(entry.isIntersecting); scheduleThumbnails(); });
@@ -276,6 +308,9 @@ function openSettings() {
     const select = mountSelect(slot, { value: String(settings[key]), options: options.map(option => ({ ...option, label: t(option.label) })), onChange(value) { select.update({ value }); if (key === 'language') { settings.language = value === 'en' || value === 'fr' ? value : 'auto'; saveSettings(); updateLanguage(); return; } if (key === 'pageSize') settings.pageSize = value === '24' ? 24 : 12; else if (key === 'density') settings.density = value === 'compact' ? 'compact' : 'comfortable'; else settings.previews = value === 'manual' ? 'manual' : 'visible'; saveSettings(); page = 1; changeView(); } }); slot.querySelector('button')?.setAttribute('aria-label', t(label));
   }
   const row = el('label', 'setting-row'), check = document.createElement('input'); check.type = 'checkbox'; check.checked = settings.automatic; check.onchange = () => { settings.automatic = check.checked; saveSettings(); clearTimeout(timer); if (check.checked) void refresh(); };
+  const iconRow = el('label', 'setting-row'), iconCheck = document.createElement('input'); iconCheck.type = 'checkbox'; iconCheck.checked = settings.projectIcons;
+  iconCheck.onchange = () => { settings.projectIcons = iconCheck.checked; saveSettings(); renderChrome(); renderSpaces(projectMenu); };
+  iconRow.append(el('span', '', t('Icônes des projets')), iconCheck); body.append(iconRow);
   row.append(el('span', '', t('Actualisation automatique')), check); body.append(row, el('p', 'source-note', t('2 lectures simultanées · 6 aperçus actifs maximum · pages de 12 ou 24 cartes. Les aperçus hors écran et ceux derrière une fenêtre sont déchargés. Ces limites ne plafonnent pas la RAM totale.')), el('p', 'source-note', t('L’apparence suit les couleurs, polices et arrondis transmis par OpenChamber. Le SDK 2.5.2 ne transmet pas l’échelle ni l’espacement de l’interface ; les polices externes peuvent utiliser une police de repli.')));
   dialog.append(body); showDialog();
 }
@@ -295,19 +330,34 @@ window.addEventListener('message', event => { if (activePreview && event.source 
 host.onSession(session => { if (!context) return; const changed = context.session?.id !== session?.id; context = { ...context, session }; if (changed) followContext(); else renderChrome(); });
 host.onDirectory(directory => { if (!context || context.directory === directory) return; context = { ...context, directory }; followContext(); });
 host.onReady(ready => {
-  const changed = context && (context.session?.id !== ready.session?.id || context.directory !== ready.directory); context = ready; applyHostReady(ready, document.documentElement);
+  const changed = context && (context.session?.id !== ready.session?.id || context.directory !== ready.directory), themeChanged = context?.theme.mode !== ready.theme.mode; context = ready; applyHostReady(ready, document.documentElement);
   // The SDK sets the root to .875rem, which shrinks every rem-based size a second time.
   document.documentElement.style.fontSize = '100%'; updateLanguage();
-  if (mounted) { if (changed) followContext(); for (const frame of app.querySelectorAll('iframe')) frame.contentWindow?.postMessage(previewThemeMessage(ready), '*'); return; }
+  if (mounted) { if (changed) followContext(); else if (themeChanged) { renderChrome(); renderSpaces(projectMenu); } for (const frame of app.querySelectorAll('iframe')) frame.contentWindow?.postMessage(previewThemeMessage(ready), '*'); return; }
   if (initialized) return; initialized = true;
   void (async () => {
     let storageError: unknown;
     try {
       const saved = await host.storage.get('preferences');
-      if (saved && typeof saved === 'object' && !Array.isArray(saved)) settings = { previews: saved.previews === 'manual' ? 'manual' : 'visible', density: saved.density === 'compact' ? 'compact' : 'comfortable', pageSize: saved.pageSize === 24 ? 24 : 12, automatic: saved.automatic !== false, language: saved.language === 'en' || saved.language === 'fr' ? saved.language : 'auto' };
+      if (saved && typeof saved === 'object' && !Array.isArray(saved)) settings = { previews: saved.previews === 'manual' ? 'manual' : 'visible', density: saved.density === 'compact' ? 'compact' : 'comfortable', pageSize: saved.pageSize === 24 ? 24 : 12, automatic: saved.automatic !== false, projectIcons: saved.projectIcons !== false, language: saved.language === 'en' || saved.language === 'fr' ? saved.language : 'auto' };
     } catch (error) { storageError = error; }
     updateLanguage(); scope = context.session ? 'session' : 'all'; mount();
     if (!['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname)) { errorLine.textContent = t('Cette version de la galerie fonctionne sur l’instance locale OpenChamber.'); return; }
-    await refresh(true); await openPendingItem(); if (storageError) report(Error('Préférences indisponibles ; réglages par défaut utilisés.'));
+    try {
+      await withCacheStorage(async (storage, owner, renew) => {
+        const saved = await readCache(storage);
+        if (saved) {
+          const chunks = chunksFor(saved);
+          for (let index = 0; index < chunks.length; index++) {
+            await renew();
+            await request('/cache', { owner, index, count: chunks.length, data: chunks[index] });
+          }
+        }
+      });
+      cacheRestored = true;
+    }
+    catch { cacheFailed(); }
+    cacheReady = true;
+    await refresh(true); void persistWhenSettled(); await openPendingItem(); if (storageError) report(Error('Préférences indisponibles ; réglages par défaut utilisés.'));
   })();
 });
