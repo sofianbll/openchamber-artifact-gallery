@@ -13,8 +13,20 @@ assert(parseManifestJson(JSON.stringify(manifest)).ok);
 assert(!manifest.dependencies && !manifest.devDependencies);
 const files = await readdir(folder, { recursive: true });
 assert(!files.some(file => /node_modules|\.env|index-v1|auth\.json|\/Users\//.test(file)));
+for (const file of files.filter(file => /^(README\.md|docs\/.*\.md)$/.test(file))) {
+  const text = await readFile(join(folder, file), 'utf8');
+  for (const [, link] of text.matchAll(/\]\(([^)\s]+)\)/g)) {
+    if (/^(https?:|#)/.test(link)) continue;
+    const target = resolve(folder, file, '..', link.split('#')[0]);
+    assert(await Bun.file(target).exists(), `Missing packaged documentation link: ${file} → ${link}`);
+  }
+}
 const digest = createHash('sha256').update(await readFile(folder + '.tar.gz')).digest('hex');
 assert.equal((await readFile(folder + '.tar.gz.sha256', 'utf8')).split(' ')[0], digest);
+const tar = Bun.spawn(['tar', '-tzf', folder + '.tar.gz'], { stdout: 'pipe', stderr: 'inherit' });
+const entries = (await new Response(tar.stdout).text()).trim().split('\n');
+assert.equal(await tar.exited, 0);
+assert(!entries.some(entry => /(^|\/)(\._|__MACOSX)/.test(entry)), 'Archive must not contain macOS metadata');
 const home = await mkdtemp(join(tmpdir(), 'gallery-package-'));
 const socket = createServer(); await new Promise<void>(resolve => socket.listen(0, '127.0.0.1', resolve));
 const port = (socket.address() as { port: number }).port; await new Promise<void>(resolve => socket.close(() => resolve()));

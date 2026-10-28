@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — 2026-10-28
+
+- Install directly from the GitHub repository URL in OpenChamber Extensions.
+  Both compiled entries now ship in Git; CI rejects stale bundles.
+- English-first extension name, public presentation and screenshots.
+- Redesigned landing page and searchable English/French documentation.
+- Expanded screenshots showing the real OpenChamber UI with synthetic sources.
+
 ## 0.2.0 — 2026-10-28
 
 First standalone public release.

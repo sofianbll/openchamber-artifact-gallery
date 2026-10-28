@@ -7,13 +7,13 @@ Browse a session, its project, Chats or all your spaces. Preview the original an
 add a lightweight reference to your current draft.
 
 [Website](https://sofianbll.github.io/openchamber-artifact-gallery/) ·
-[Download](https://github.com/sofianbll/openchamber-artifact-gallery/releases/latest) ·
-[Guide](docs/guide.md) · [Français](docs/fr.md)
+[Install](docs/installation.md) ·
+[Guide](docs/guide.md) · [Français](docs/fr/guide.md)
 
-![Artifact Gallery in dark mode, showing six synthetic deliverables](docs/assets/gallery-dark.png)
+![Artifact Gallery inside OpenChamber, with fictional projects and deliverables](docs/assets/host-gallery.png)
 
-*The compiled extension, with fictional projects and artifacts. No private session
-data is used in public screenshots.*
+*The real OpenChamber 2.5.2 frontend and compiled extension, with synthetic APIs
+and fictional projects. No private sessions are used in public screenshots.*
 
 ## A home for your artifacts
 
@@ -29,43 +29,76 @@ data is used in public screenshots.*
   choose a persistent extension preference.
 - **Keep the familiar look.** Host colors, font stacks and corner radii, with
   OpenChamber's semantic text sizes and bundled Geist Sans. See the
-  [appearance limits](docs/guide.md#appearance-and-language).
+  [appearance limits](docs/appearance.md).
 
 Agents keep using `render.page`, file links and their usual presentation tools.
 There is no extra publishing step, model call or automatic context injection.
 
-## Install
+## Install from GitHub
 
 Requires a **local OpenChamber 2.5.2+** instance and a running OpenCode service
 compatible with client **2.2.0**. Tested on macOS with OpenChamber 2.5.2.
 
-1. Download the `.tar.gz` archive from [Releases](https://github.com/sofianbll/openchamber-artifact-gallery/releases/latest).
-2. Extract it into a permanent folder.
-3. In **OpenChamber → Settings → Extensions → Add extension**, select that folder.
-4. Review the **sessions** and **local service** capabilities, then enable **Galerie**.
+1. Open **OpenChamber → Settings → Extensions → Add extension**.
+2. Paste this repository URL:
+
+   ```text
+   https://github.com/sofianbll/openchamber-artifact-gallery
+   ```
+
+3. Review the **sessions** and **local service** capabilities, then install and
+   enable **Artifact Gallery**.
 
 Open the gallery from the **upper-left sidebar row, before search**. On narrow
 sidebars, look under **Extension pages**. It is also available as a side panel.
 
-**No Bun, npm install or build is needed for the release archive.** OpenChamber
-supplies the Node runtime. GitHub's automatic “Source code” archives are not the
-installable bundle.
+**No Bun, npm install or build is needed.** OpenChamber clones the repository with
+Git and supplies the Node runtime; both compiled entries ship in the repository.
+Use the native extension update controls to follow new versions. Append `#v0.2.1`
+to install that fixed tag instead.
+
+[Full installation and update guide](docs/installation.md). A prebuilt `.tar.gz`
+with SHA-256 is also available in [Releases](https://github.com/sofianbll/openchamber-artifact-gallery/releases/latest)
+for folder installation.
 
 > The local service runs with your user account's access. It reads session history
 > and explicitly referenced files; it is not an OS sandbox. Previewed HTML runs
 > in an isolated, network-blocked frame. The gallery index contains private metadata
-> and stays on your machine. [Storage and boundaries →](docs/guide.md#storage-and-boundaries)
+> and stays on your machine. [Storage and boundaries](docs/privacy.md).
 
-## Light, dark, and smaller windows
+## See the whole flow
 
-<picture>
-  <img src="docs/assets/gallery-light.png" alt="French gallery interface in light mode" width="100%">
-</picture>
+Open an original page with its source and date:
+
+![Expanded artifact with provenance inside OpenChamber](docs/assets/host-preview.png)
+
+Add a reference to the active draft, without sending:
+
+![Artifact reference in the OpenChamber composer](docs/assets/host-reuse.png)
+
+Switch themes or choose your language and preview preferences:
+
+![Artifact Gallery in OpenChamber's light theme](docs/assets/host-light.png)
+
+[Settings screenshot](docs/assets/host-settings.png) ·
+[French interface](docs/assets/host-french.png) ·
+[Narrow window](docs/assets/host-narrow.png)
 
 The extension follows theme updates received from the host. **SDK 2.5.2 does not
 send custom interface scale or padding**; those settings are not synchronized.
 Nonbundled web fonts can fall back to an installed font. Font/radius-only host
 changes may require reopening the gallery before the host sends updated tokens.
+
+## Documentation
+
+The [mini-doc](https://sofianbll.github.io/openchamber-artifact-gallery/guide.html)
+has navigation and local search, in English and French:
+
+- [Find an artifact](docs/browse.md)
+- [Preview and reuse](docs/reuse.md)
+- [Appearance and language](docs/appearance.md)
+- [Privacy and limits](docs/privacy.md)
+- [Troubleshooting](docs/troubleshooting.md)
 
 ## Develop
 
@@ -73,15 +106,17 @@ changes may require reopening the gallery before the host sends updated tokens.
 bun install --frozen-lockfile --ignore-scripts
 bun test src/gallery.test.ts
 bun run build
-bun run package /absolute/path/to/new/openchamber-artifact-gallery-0.2.0
+bun run docs:build
+bun run package /absolute/path/to/new/openchamber-artifact-gallery-0.2.1
 ```
 
 Install the built checkout by folder, or use the generated archive. Rebuild after
-editing source. For service changes, disable and re-enable **Galerie**; there is
+editing source, and commit both generated entries with the source change. For service
+changes, disable and re-enable **Artifact Gallery**; there is
 no need to restart the shared OpenCode service.
 
 [Development and browser checks](docs/development.md) ·
-[Architecture, limitations and measurements](docs/guide.md) ·
+[Architecture, limitations and measurements](docs/reference.md) ·
 [Changelog](CHANGELOG.md)
 
 ## License & credits

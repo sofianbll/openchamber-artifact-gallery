@@ -17,6 +17,11 @@ jobs:
       - run: bun install --frozen-lockfile --ignore-scripts
       - run: bun test src/gallery.test.ts
       - run: bun run build
+      - name: Repository installs must ship current bundles
+        run: |
+          git ls-files --error-unmatch panel/main.js service/main.js
+          git diff --exit-code -- panel/main.js service/main.js
+      - run: bun run docs:build
       - name: Install isolated browser test runtime
         run: |
           npm install --prefix "$RUNNER_TEMP/browser" --no-package-lock --no-save --ignore-scripts playwright@1.62.1
@@ -29,6 +34,7 @@ jobs:
         run: |
           bun test/browser.ts
           bun test/benchmark.ts
+          bun test/site.ts
       - name: Installable package
         run: |
           bun run package "$RUNNER_TEMP/gallery-package"

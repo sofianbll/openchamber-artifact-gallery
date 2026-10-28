@@ -21,6 +21,8 @@ jobs:
       - name: Build and verify prebuilt archive
         run: |
           bun run package "$RUNNER_TEMP/openchamber-artifact-gallery-${GITHUB_REF_NAME#v}"
+          git ls-files --error-unmatch panel/main.js service/main.js
+          git diff --exit-code -- panel/main.js service/main.js
           bun test/package.ts "$RUNNER_TEMP/openchamber-artifact-gallery-${GITHUB_REF_NAME#v}"
       - name: Publish release
         env:

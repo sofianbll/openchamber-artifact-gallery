@@ -1,13 +1,14 @@
 {
   "name": "openchamber-artifact-gallery",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "bun build.ts",
     "test": "bun test",
-    "package": "bun package.ts"
+    "package": "bun package.ts",
+    "docs:build": "vitepress build docs"
   },
   "openchamber": {
     "apiVersion": 1,
@@ -17,7 +18,7 @@
     "contributes": {
       "panel": {
         "id": "artifact-gallery",
-        "name": "Galerie",
+        "name": "Artifact Gallery",
         "icon": "image",
         "entry": "panel/index.html"
       },
@@ -32,7 +33,8 @@
   },
   "devDependencies": {
     "@openchamber/sdk": "2.5.2",
-    "@opencode/client": "2.2.0"
+    "@opencode/client": "2.2.0",
+    "vitepress": "1.6.4"
   },
   "patchedDependencies": {
     "@openchamber/sdk@2.5.2": "patches/@openchamber%2Fsdk@2.5.2.patch"
