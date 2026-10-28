@@ -32,7 +32,7 @@ Il ne télécharge pas les pièces jointes des releases. L’URL simple suit la 
 Pour fixer une version, ajoute son tag :
 
 ```text
-https://github.com/sofianbll/openchamber-artifact-gallery#v0.2.1
+https://github.com/sofianbll/openchamber-artifact-gallery#v0.3.0
 ```
 
 Un tag fixé reste sur cette version. Pour revenir à une ancienne version, désactive

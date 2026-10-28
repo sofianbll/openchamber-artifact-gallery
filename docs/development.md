@@ -74,8 +74,8 @@ fixes that behavior upstream.
 ## Package and check
 
 ```sh
-bun run package /absolute/path/to/new/openchamber-artifact-gallery-0.2.1
-bun test/package.ts /absolute/path/to/new/openchamber-artifact-gallery-0.2.1
+bun run package /absolute/path/to/new/openchamber-artifact-gallery-0.3.0
+bun test/package.ts /absolute/path/to/new/openchamber-artifact-gallery-0.3.0
 ```
 
 The package command builds, validates the SDK manifest, copies an explicit

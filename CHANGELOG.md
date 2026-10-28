@@ -1,7 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-10-28
 
+- Persist bounded gallery index snapshots with native OpenChamber storage and a
+  shared service lease, with an in-memory fallback when storage is unavailable.
+- Add cached, theme-aware project icons and refreshed public visual assets.
+- Run every source test in CI and stabilize headless browser interactions/cleanup.
+- Reconcile English/French privacy, storage and extension reference documentation.
 - Add contribution guidelines and issue/pull-request templates.
 - Check the baseline and latest OpenChamber host on pushes, pull requests and a
   weekly schedule, with manual candidate-version checks and isolated service tests.

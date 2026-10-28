@@ -58,7 +58,7 @@ sidebars, look under **Extension pages**. It is also available as a side panel.
 
 **No Bun, npm install or build is needed.** OpenChamber clones the repository with
 Git and supplies the Node runtime; both compiled entries ship in the repository.
-Use the native extension update controls to follow new versions. Append `#v0.2.1`
+Use the native extension update controls to follow new versions. Append `#v0.3.0`
 to install that fixed tag instead.
 
 [Full installation and update guide](docs/installation.md). A prebuilt `.tar.gz`
@@ -111,7 +111,7 @@ bun install --frozen-lockfile --ignore-scripts
 bun test src/
 bun run build
 bun run docs:build
-bun run package /absolute/path/to/new/openchamber-artifact-gallery-0.2.1
+bun run package /absolute/path/to/new/openchamber-artifact-gallery-0.3.0
 ```
 
 Install the built checkout by folder, or use the generated archive. Rebuild after

@@ -34,7 +34,7 @@ The plain URL follows the repository's default branch.
 To install a fixed release, append its tag:
 
 ```text
-https://github.com/sofianbll/openchamber-artifact-gallery#v0.2.1
+https://github.com/sofianbll/openchamber-artifact-gallery#v0.3.0
 ```
 
 A pinned tag stays on that release. If returning to an older version, disable and
