@@ -7,7 +7,7 @@ testée n’est pas garantie compatible.
 
 Le [workflow Compatibility](https://github.com/sofianbll/openchamber-artifact-gallery/actions/workflows/compatibility.yml)
 compare la version de référence 2.5.2 à la dernière stable publiée sur npm, à chaque
-push/PR et le lundi à 07:23 UTC. Son lancement manuel permet de choisir une version
+push/PR et chaque jour à 07:23 UTC. Son lancement manuel permet de choisir une version
 précise. La version résolue apparaît dans le résumé ; les captures fictives sont
 conservées 14 jours comme artefacts du run.
 

@@ -10,7 +10,7 @@ version works. See the [official SDK contract](https://github.com/openchamber/op
 ## Automated checks
 
 The [Compatibility workflow](https://github.com/sofianbll/openchamber-artifact-gallery/actions/workflows/compatibility.yml)
-runs on pushes and pull requests, every Monday at 07:23 UTC, and manually:
+runs on pushes and pull requests, daily at 07:23 UTC, and manually:
 
 - **Baseline:** fixed `@openchamber/web@2.5.2`.
 - **Candidate:** npm's `latest` stable tag, or an exact version entered through

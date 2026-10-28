@@ -89,7 +89,7 @@ Node service, authentication and route validation; it does not scan real session
   Chromium extension/site checks, loading bounds and package smoke check on pushes
   and pull requests.
 - **Compatibility**: baseline and candidate host checks on pushes, pull requests,
-  weekly and on demand; see [coverage and failure handling](compatibility.md).
+  daily and on demand; see [coverage and failure handling](compatibility.md).
 - **Pages**: builds VitePress from `main` and deploys `docs/.vitepress/dist` to GitHub Pages.
 - **Release**: a `v*` tag runs tests and packages a prebuilt archive with checksum.
   The tag must match `package.json`. A GitHub release uses that exact archive.

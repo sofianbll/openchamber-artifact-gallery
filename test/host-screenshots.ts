@@ -115,6 +115,9 @@ async function thumbnails(panel: any) {
     assert.equal(await heading.textContent(), demos[i][3].match(/<h1>(.*?)<\/h1>/)![1]);
   }
 }
+// OpenChamber 2.5.3 marks the drag wrapper aria-disabled when no folder accepts the session.
+// The row still opens normally, so bypass Playwright's inherited-disabled actionability check.
+const openDemoSession = (page: any) => page.getByRole('button', { name: 'Shipping the next version', exact: true }).click({ force: true });
 async function capture(page: any, name: string) {
   for (const frame of page.frames()) {
     await frame.locator('body').evaluate(() => document.fonts.ready);
@@ -132,7 +135,7 @@ try {
   const page = await context.newPage(), errors: string[] = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(server.url.href);
-  await page.getByRole('button', { name: 'Shipping the next version', exact: true }).click();
+  await openDemoSession(page);
   await page.getByRole('button', { name: 'Artifact Gallery', exact: true }).first().waitFor();
   await page.getByRole('button', { name: 'Artifact Gallery', exact: true }).first().click();
   const panel = page.frameLocator('iframe[title="Artifact Gallery"]');
@@ -151,7 +154,7 @@ try {
   await capture(page, 'settings');
   await panel.getByRole('button', { name: 'Close', exact: true }).click();
   await panel.getByRole('button', { name: 'Add Release checklist to message', exact: true }).click();
-  await page.getByRole('button', { name: 'Shipping the next version', exact: true }).click();
+  await openDemoSession(page);
   await page.getByRole('textbox').first().fill('Use this checklist to plan the final review.');
   const chip = page.getByRole('button', { name: /Release checklist/ });
   await chip.waitFor();
@@ -165,7 +168,7 @@ try {
   await light.route('**/*', route => new URL(route.request().url()).origin === server.url.origin ? route.continue() : route.abort());
   const lightPage = await light.newPage(); lightPage.on('pageerror', e => errors.push(e.message));
   await lightPage.goto(server.url.href);
-  await lightPage.getByRole('button', { name: 'Shipping the next version', exact: true }).click();
+  await openDemoSession(lightPage);
   await lightPage.getByRole('button', { name: 'Artifact Gallery', exact: true }).first().click();
   const lightPanel = lightPage.frameLocator('iframe[title="Artifact Gallery"]');
   await lightPanel.getByRole('button', { name: 'All', exact: true }).click();
