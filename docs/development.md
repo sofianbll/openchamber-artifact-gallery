@@ -1,7 +1,10 @@
 # Development
 
 Use Bun **1.4.3** (the CI version). Node runs the compiled service; no runtime npm
-dependencies are required by the installable archive.
+dependencies are required by the installable archive. The official host checks
+use Node **24.14.0**, matching OpenChamber 2.5.2's minimum Node requirement.
+Start with the [contribution guide](https://github.com/sofianbll/openchamber-artifact-gallery/blob/main/CONTRIBUTING.md)
+for pull requests and preserved behavior.
 
 ```sh
 bun install --frozen-lockfile --ignore-scripts
@@ -42,20 +45,24 @@ session data. `test/benchmark.ts` uses the same browser variables and asserts th
 loading bounds against 1,000 synthetic references.
 
 `test/screenshots.ts` exercises a fixture host with fictional data.
-`test/host-screenshots.ts` generates the public `host-*.png` images in `docs/assets/`
-using an **isolated official frontend**, not a live OpenChamber instance:
+`test/host-screenshots.ts` checks an **isolated official frontend**, not a live
+OpenChamber instance. By default, captures go to ignored `test-results/host-VERSION/`.
+To regenerate the public `host-*.png` images explicitly:
 
 ```sh
 OPENCHAMBER_PACKAGE=/absolute/path/to/isolated/openchamber-web-2.5.2 \
 PLAYWRIGHT_PATH=/absolute/path/to/playwright/index.mjs \
 CHROMIUM_PATH=/absolute/path/to/chromium \
+GALLERY_TEST_OUTPUT="$PWD/docs/assets" \
 bun test/host-screenshots.ts
 ```
 
-`OPENCHAMBER_PACKAGE` must point to an extracted `@openchamber/web@2.5.2` package.
-The script serves that frontend on a temporary loopback port with synthetic APIs,
-projects, conversations and artifacts. It never connects to the user's real host
-or real backend. Inspect captures before publishing; never publish personal data.
+`OPENCHAMBER_PACKAGE` points to an extracted `@openchamber/web` package, with its
+declared SDK resolvable. The script uses that version's catalog, frame policy and
+frontend, on a temporary loopback port with synthetic APIs, projects, conversations
+and artifacts. It never connects to the user's real host or real backend. Inspect
+captures before publishing; never publish personal data. See [Compatibility](compatibility.md)
+for candidate versions, isolated installation and the official service smoke test.
 
 The pinned SDK 2.5.2 patch in `patches/` ignores input/textarea scroll events when
 dismissing popups. Without it, a long search losing focus can close a newly opened
@@ -79,6 +86,8 @@ Node service, authentication and route validation; it does not scan real session
 - **Checks**: frozen install, backend tests, build freshness, VitePress build,
   Chromium extension/site checks, loading bounds and package smoke check on pushes
   and pull requests.
+- **Compatibility**: baseline and candidate host checks on pushes, pull requests,
+  weekly and on demand; see [coverage and failure handling](compatibility.md).
 - **Pages**: builds VitePress from `main` and deploys `docs/.vitepress/dist` to GitHub Pages.
 - **Release**: a `v*` tag runs tests and packages a prebuilt archive with checksum.
   The tag must match `package.json`. A GitHub release uses that exact archive.

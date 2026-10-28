@@ -16,6 +16,12 @@ permettre l’installation par URL. Le site VitePress est généré dans
 `docs/.vitepress/dist` ; ce dossier n’est pas une source à modifier.
 
 Les captures publiques utilisent `test/host-screenshots.ts` avec un paquet
-`@openchamber/web@2.5.2` isolé, fourni par `OPENCHAMBER_PACKAGE`. Le frontend est
+`@openchamber/web` isolé, fourni par `OPENCHAMBER_PACKAGE`. Les sorties vont par défaut
+dans `test-results/host-VERSION/` ; `GALLERY_TEST_OUTPUT` permet de choisir explicitement
+`docs/assets/` pour les captures publiques. Le frontend est
 réel ; les API, projets, conversations et artefacts sont fictifs. Aucune connexion
 à l’instance personnelle n’est nécessaire ni autorisée pour ces captures.
+
+Le [guide de compatibilité](compatibility.md) décrit les contrôles de la version
+de référence et des prochaines versions. Le gestionnaire officiel de services est
+testé sous Node 24.14.0, avec un HOME temporaire vide.

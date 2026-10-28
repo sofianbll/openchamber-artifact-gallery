@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add contribution guidelines and issue/pull-request templates.
+- Check the baseline and latest OpenChamber host on pushes, pull requests and a
+  weekly schedule, with manual candidate-version checks and isolated service tests.
+- Document compatibility coverage, dependency upgrades and release maintenance in
+  English and French. Compatibility captures stay outside public assets by default.
+
 ## 0.2.1 — 2026-10-28
 
 - Install directly from the GitHub repository URL in OpenChamber Extensions.

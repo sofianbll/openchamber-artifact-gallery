@@ -119,6 +119,12 @@ no need to restart the shared OpenCode service.
 [Architecture, limitations and measurements](docs/reference.md) ·
 [Changelog](CHANGELOG.md)
 
+## Contributing
+
+Small fixes are welcome directly as pull requests; discuss substantial changes in
+an issue first. See [Contributing](CONTRIBUTING.md) for scope, checks and upstream
+updates, and [Development](docs/development.md) for setup and test commands.
+
 ## License & credits
 
 [MIT](LICENSE). Independent community extension, not an official OpenChamber

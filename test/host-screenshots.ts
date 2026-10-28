@@ -2,14 +2,23 @@
 import assert from 'node:assert/strict';
 import { join, resolve } from 'node:path';
 import { mkdir, rm } from 'node:fs/promises';
-import { guestFramePolicy } from '@openchamber/sdk';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { Library } from '../src/library';
 
 const host = process.env.OPENCHAMBER_PACKAGE;
-assert(host, 'OPENCHAMBER_PACKAGE must point to an isolated @openchamber/web@2.5.2 package');
-assert.equal((await Bun.file(join(host, 'package.json')).json()).version, '2.5.2');
+assert(host, 'OPENCHAMBER_PACKAGE must point to an isolated @openchamber/web package');
+const hostManifest = await Bun.file(join(host, 'package.json')).json();
+assert.equal(hostManifest.name, '@openchamber/web');
+const hostVersion = hostManifest.version;
+const hostRequire = createRequire(resolve(host, 'package.json'));
+const { guestFramePolicy } = await import(pathToFileURL(hostRequire.resolve('@openchamber/sdk')).href);
 const { chromium } = await import(process.env.PLAYWRIGHT_PATH!);
-const root = resolve(import.meta.dir, '..'), output = join(root, 'docs/assets');
+const root = resolve(import.meta.dir, '..'), output = resolve(process.env.GALLERY_TEST_OUTPUT || join(root, 'test-results', `host-${hostVersion}`));
+const manifest = await Bun.file(join(root, 'package.json')).json();
+const { inspectGuestPackage, toPublicGuest } = await import(pathToFileURL(join(host, 'server/lib/guests/catalog.js')).href);
+const inspected = await inspectGuestPackage(root, { openchamberVersion: hostVersion });
+assert.equal(inspected.ok, true, JSON.stringify(inspected));
 await mkdir(output, { recursive: true });
 const projects = [{ id: 'studio', name: 'Studio', path: '/demo/studio' }, { id: 'atlas', name: 'Atlas', path: '/demo/atlas' }];
 const demos = [
@@ -26,7 +35,10 @@ const sessions = items.map(item => ({ id: item.sessionId, title: item.sessionTit
 const library = new Library('/unused-public-screenshot-index');
 library.projects = projects.map(p => ({ id: p.id, name: p.name, directory: p.path }));
 for (const item of items) library.sessions.set(item.sessionId, { id: item.sessionId, title: item.sessionTitle, directory: item.directory, projectId: null, updated: 1, artifacts: [item] } as any);
-const guest = { id: 'artifact-gallery', name: 'Artifact Gallery', icon: 'image', version: '0.2.1', entry: 'panel/index.html', pageEntry: 'panel/index.html', enabled: true, source: 'git', capabilities: { requested: ['sessions'], granted: ['sessions'] }, service: { runtime: 'host', granted: true, permissions: {} } };
+const guest = toPublicGuest({ ...inspected.guest, enabled: true, source: 'git', capabilityGrants: ['sessions', 'service'] });
+assert.equal(guest.version, manifest.version);
+assert.equal(guest.pageEntry, 'panel/index.html');
+assert.equal(guest.service.granted, true);
 const model = { id: 'demo/demo', providerID: 'demo', modelID: 'demo', name: 'Demo model', variants: [], modalities: { input: ['text'], output: ['text'] }, limit: { context: 200000, output: 8000 }, cost: { input: 0, output: 0 } };
 let settings = { projects, activeProjectId: 'studio', themeMode: 'dark', darkThemeId: 'openchamber-dark', lightThemeId: 'openchamber-light', locale: 'en', defaultModel: 'demo/demo', defaultAgent: 'build' };
 let preferences: any = { automatic: false }, draft: any = {};
@@ -77,14 +89,14 @@ const server = Bun.serve({ hostname: '127.0.0.1', port: 0, async fetch(req, serv
   if (['/api/command', '/api/form', '/api/permission/request', '/api/shell'].includes(p)) return wire([]);
   if (p === '/api/vcs') return wire({ branch: { current: 'main', default: 'main' } });
   if (p === '/api/fs/directory-stats') { const body = await req.json(); return json({ results: (body.paths ?? []).map((path: string) => ({ path, exists: true, isDirectory: true })) }); }
-  if (p === '/api/version') return json({ version: '2.5.2' });
+  if (p === '/api/version') return json({ version: hostVersion });
   if (p.startsWith('/api/session-drafts')) { if (req.method !== 'GET') draft = await req.json(); return json(draft); }
   if (p === '/api/git/projects') { const body = await req.json(); return json({ projects: (body.directories ?? []).map((directory: string) => ({ directory, isGitRepository: false })) }); }
   if (p === '/api/config/themes') return json({ themes: [] });
   if (p === '/api/fs/list') return json({ entries: [], path: '/demo/studio' });
   if (p === '/api/opencode/compatibility') return json({ compatible: true, version: '2.2.0' });
   if (p === '/api/opencode/upgrade-status') return json({ status: 'idle' });
-  if (p === '/api/openchamber/update-check') return json({ currentVersion: '2.5.2', latestVersion: '2.5.2', updateAvailable: false });
+  if (p === '/api/openchamber/update-check') return json({ currentVersion: hostVersion, latestVersion: hostVersion, updateAvailable: false });
   return json({});
 }, websocket: { message() {} } });
 async function thumbnails(panel: any) {
@@ -105,8 +117,9 @@ async function capture(page: any, name: string) {
   assert.deepEqual(sends, [], 'Adding a reference must not send a message');
   await page.screenshot({ path: join(output, `host-${name}.png`), animations: 'disabled' });
 }
-const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
+let browser;
 try {
+  browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH, headless: true });
   const context = await browser.newContext({ viewport: { width: 1440, height: 960 }, timezoneId: 'UTC', colorScheme: 'dark' });
   await context.route('**/*', route => new URL(route.request().url()).origin === server.url.origin ? route.continue() : route.abort());
   const page = await context.newPage(), errors: string[] = [];
@@ -169,5 +182,5 @@ try {
   await capture(lightPage, 'narrow');
   assert.deepEqual(errors, []);
   await rm(join(output, 'host-debug.png'), { force: true });
-  console.log('Seven public screenshots: real OpenChamber 2.5.2 frontend, synthetic APIs, no real sessions or external requests.');
-} finally { await browser.close(); server.stop(true); }
+  console.log(`Host checks passed: OpenChamber ${hostVersion}, gallery ${manifest.version}; official catalog, frame policy and frontend, synthetic APIs. Screenshots: ${output}`);
+} finally { await browser?.close(); server.stop(true); }

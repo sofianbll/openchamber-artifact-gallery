@@ -3,12 +3,12 @@ import { defineConfig } from 'vitepress';
 const en = [
   { text: 'Start here', items: [{ text: 'Overview', link: '/guide' }, { text: 'Install & update', link: '/installation' }] },
   { text: 'Use the gallery', items: [{ text: 'Find an artifact', link: '/browse' }, { text: 'Preview & reuse', link: '/reuse' }, { text: 'Appearance & language', link: '/appearance' }] },
-  { text: 'Under the hood', items: [{ text: 'Privacy & limits', link: '/privacy' }, { text: 'Troubleshooting', link: '/troubleshooting' }, { text: 'Development', link: '/development' }, { text: 'Technical reference', link: '/reference' }] },
+  { text: 'Under the hood', items: [{ text: 'Privacy & limits', link: '/privacy' }, { text: 'Troubleshooting', link: '/troubleshooting' }, { text: 'Development', link: '/development' }, { text: 'Compatibility', link: '/compatibility' }, { text: 'Technical reference', link: '/reference' }] },
 ];
 const fr = [
   { text: 'Premiers pas', items: [{ text: 'Présentation', link: '/fr/guide' }, { text: 'Installer et mettre à jour', link: '/fr/installation' }] },
   { text: 'Utiliser la galerie', items: [{ text: 'Retrouver un artefact', link: '/fr/browse' }, { text: 'Prévisualiser et réutiliser', link: '/fr/reuse' }, { text: 'Apparence et langue', link: '/fr/appearance' }] },
-  { text: 'Pour aller plus loin', items: [{ text: 'Confidentialité et limites', link: '/fr/privacy' }, { text: 'Résoudre un problème', link: '/fr/troubleshooting' }, { text: 'Développement', link: '/fr/development' }, { text: 'Référence technique', link: '/fr/reference' }] },
+  { text: 'Pour aller plus loin', items: [{ text: 'Confidentialité et limites', link: '/fr/privacy' }, { text: 'Résoudre un problème', link: '/fr/troubleshooting' }, { text: 'Développement', link: '/fr/development' }, { text: 'Compatibilité', link: '/fr/compatibility' }, { text: 'Référence technique', link: '/fr/reference' }] },
 ];
 export default defineConfig({
   title: 'Artifact Gallery',

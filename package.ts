@@ -14,9 +14,9 @@ const source = JSON.parse(await readFile('package.json', 'utf8'));
 const manifest = { name: source.name, version: source.version, private: true, type: 'module', ...(source.license ? { license: source.license } : {}), openchamber: source.openchamber };
 assert(parseManifestJson(JSON.stringify(manifest)).ok, 'Invalid distribution manifest');
 await writeFile(join(output, 'package.json'), JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx' });
-const guides = ['guide', 'installation', 'browse', 'reuse', 'appearance', 'privacy', 'troubleshooting', 'development', 'reference'];
+const guides = ['guide', 'installation', 'browse', 'reuse', 'appearance', 'privacy', 'troubleshooting', 'development', 'reference', 'compatibility'];
 const screenshots = ['gallery', 'preview', 'reuse', 'light', 'settings', 'french', 'narrow'];
-const files = ['README.md', 'CHANGELOG.md',
+const files = ['README.md', 'CONTRIBUTING.md', 'CHANGELOG.md',
   ...guides.flatMap(name => [`docs/${name}.md`, `docs/fr/${name}.md`]),
   ...screenshots.map(name => `docs/assets/host-${name}.png`),
   'panel/index.html', 'panel/main.js', 'panel/styles.css', 'service/main.js', 'assets/LICENSE', 'vendor/LICENSE', 'vendor/OPENCODE-LICENSE', 'vendor/README.md'];

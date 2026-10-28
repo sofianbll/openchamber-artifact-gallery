@@ -1,0 +1,72 @@
+name: Compatibility
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '23 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Candidate @openchamber/web version (exact version or latest)'
+        default: latest
+        type: string
+permissions:
+  contents: read
+jobs:
+  host:
+    name: Host (${{ matrix.track }}, ${{ matrix.version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - track: baseline
+            version: '2.5.2'
+          - track: candidate
+            version: ${{ inputs.version || 'latest' }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.14.0'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - name: Prepare the installable package
+        run: |
+          bun run package "$RUNNER_TEMP/gallery-package"
+          git ls-files --error-unmatch panel/main.js service/main.js
+          git diff --exit-code -- panel/main.js service/main.js
+          bun test/package.ts "$RUNNER_TEMP/gallery-package"
+      - name: Install the isolated host and browser
+        env:
+          HOST_VERSION: ${{ matrix.version }}
+        run: |
+          [[ "$HOST_VERSION" =~ ^(latest|[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)$ ]]
+          mkdir -p "$RUNNER_TEMP/host"
+          npm pack "@openchamber/web@$HOST_VERSION" --ignore-scripts --pack-destination "$RUNNER_TEMP/host" --json > "$RUNNER_TEMP/host/pack.json"
+          tar -xzf "$RUNNER_TEMP/host/$(node -p "require('$RUNNER_TEMP/host/pack.json')[0].filename")" -C "$RUNNER_TEMP/host"
+          SDK_VERSION=$(node -p "require('$RUNNER_TEMP/host/package/package.json').dependencies['@openchamber/sdk']")
+          npm install --prefix "$RUNNER_TEMP/host" --no-package-lock --no-save --ignore-scripts "@openchamber/sdk@$SDK_VERSION"
+          npm install --prefix "$RUNNER_TEMP/browser" --no-package-lock --no-save --ignore-scripts playwright@1.62.1
+          node "$RUNNER_TEMP/browser/node_modules/playwright/cli.js" install --with-deps chromium
+          echo "OPENCHAMBER_PACKAGE=$RUNNER_TEMP/host/package" >> "$GITHUB_ENV"
+          echo "PLAYWRIGHT_PATH=$RUNNER_TEMP/browser/node_modules/playwright/index.mjs" >> "$GITHUB_ENV"
+          echo "CHROMIUM_PATH=$(node -e "console.log(require('$RUNNER_TEMP/browser/node_modules/playwright').chromium.executablePath())")" >> "$GITHUB_ENV"
+          echo "GALLERY_TEST_OUTPUT=$RUNNER_TEMP/host-results" >> "$GITHUB_ENV"
+          echo "Resolved host: $(node -p "require('$RUNNER_TEMP/host/package/package.json').version")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Check the official service lifecycle
+        run: node test/host-service.mjs "$RUNNER_TEMP/gallery-package"
+      - name: Check the official frontend with synthetic APIs
+        run: bun test/host-screenshots.ts
+      - name: Keep synthetic screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: host-${{ matrix.track }}
+          path: ${{ runner.temp }}/host-results
+          if-no-files-found: ignore
+          retention-days: 14
