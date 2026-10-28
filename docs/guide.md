@@ -116,8 +116,9 @@ Verified locally: ten backend tests / 41 assertions; compiled browser checks for
 scope retention, cross-space attachments, chip reopening, persisted preferences,
 locale priority, loaded fonts, theme tokens, isolation, stale answers, filters and
 desktop/mobile overflow. Real OpenChamber checks observed the running service,
-gallery navigation, provenance attachment without sending, and corrected 13.5px
-titles with Geist loaded. Chip reopening is covered by the fixture bridge.
+gallery navigation, provenance attachment without sending, reopening that chip
+in the real host, and corrected 13.5px titles with Geist loaded. Linux CI also
+passed the backend, browser, loading-bound and packaged Node service checks.
 
 No Safari, Firefox, physical-device or remote-host qualification. The built-in
 extension registry is maintainer-controlled; publication does not imply listing.
