@@ -1,0 +1,40 @@
+{
+  "name": "openchamber-artifact-gallery",
+  "version": "0.2.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build.ts",
+    "test": "bun test",
+    "package": "bun package.ts"
+  },
+  "openchamber": {
+    "apiVersion": 1,
+    "engines": {
+      "openchamber": ">=2.5.2"
+    },
+    "contributes": {
+      "panel": {
+        "id": "artifact-gallery",
+        "name": "Galerie",
+        "icon": "image",
+        "entry": "panel/index.html"
+      },
+      "page": true,
+      "capabilities": ["sessions"],
+      "service": {
+        "entry": "service/main.js",
+        "runtime": "host",
+        "permissions": {}
+      }
+    }
+  },
+  "devDependencies": {
+    "@openchamber/sdk": "2.5.2",
+    "@opencode/client": "2.2.0"
+  },
+  "patchedDependencies": {
+    "@openchamber/sdk@2.5.2": "patches/@openchamber%2Fsdk@2.5.2.patch"
+  }
+}

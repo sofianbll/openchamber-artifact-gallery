@@ -1,0 +1,78 @@
+export type Language = 'auto' | 'en' | 'fr';
+export let locale: 'en' | 'fr' = 'en';
+export function setLocale(host: string, preference: Language) {
+  const next = preference === 'auto' ? (/^fr(?:-|$)/i.test(host) ? 'fr' : 'en') : preference;
+  const changed = next !== locale; locale = next; return changed;
+}
+
+// French keys preserve the local service's existing messages; source/user text is never translated.
+const english: Record<string, string> = {
+  'Galerie': 'Gallery', 'Artefacts': 'Artifacts', 'Explorer': 'Explore', 'Espaces': 'Spaces',
+  'Explorer les espaces': 'Explore spaces', 'Portée de la galerie': 'Gallery scope',
+  'Explorer {name}': 'Explore {name}', 'Tout': 'All', 'Projet': 'Project',
+  'Tous les projets': 'All projects', 'Chats et projets': 'Chats and projects',
+  'Sources non classées': 'Unclassified sources', 'Aucune session active': 'No active session',
+  'Espace en cours de lecture': 'Loading space', 'Espace indisponible': 'Space unavailable',
+  'Exploration libre': 'Browse all spaces', 'Suit la session active': 'Follows the active session',
+  'Ajout au brouillon · {title}': 'Add to draft · {title}',
+  'Ouvre une conversation pour y ajouter une référence.': 'Open a conversation to add a reference.',
+  'Rechercher dans cette session…': 'Search this session…', 'Rechercher dans Chats…': 'Search Chats…',
+  'Rechercher dans ce projet…': 'Search this project…', 'Rechercher les artefacts…': 'Search artifacts…',
+  'Rechercher les artefacts': 'Search artifacts', 'Rechercher': 'Search',
+  'Réglages': 'Settings', 'Réglages de la galerie': 'Gallery settings', 'Actualiser': 'Refresh',
+  'Pages inline': 'Inline pages', 'Tableaux': 'Tables', 'Tous les types': 'All types', 'Filtrer par type': 'Filter by type',
+  'Chargement des références…': 'Loading references…', '{count} artefacts': '{count} artifacts',
+  'aperçus à la demande': 'previews on demand', '6 aperçus maximum': 'up to 6 previews',
+  'collecte {done}/{total}': 'collecting {done}/{total}', '{count} sessions non lues': '{count} unread sessions',
+  'Chargement des projets OpenChamber…': 'Loading OpenChamber projects…',
+  'Aperçu indisponible': 'Preview unavailable', 'Aujourd’hui': 'Today', 'Hier': 'Yesterday',
+  'Aucun artefact ne correspond': 'No matching artifacts', 'Cette session n’a pas encore d’artefact': 'No artifacts in this session yet',
+  'Pas encore d’artefact ici': 'No artifacts here yet', 'Essaie un autre type ou mot-clé.': 'Try another type or keyword.',
+  'Élargis la portée pour retrouver un autre livrable.': 'Broaden the scope to find another deliverable.',
+  'Effacer les filtres': 'Clear filters', 'Voir Chats': 'View Chats', 'Voir le projet': 'View project', 'Voir tout': 'View all',
+  'Ouvrir {title}': 'Open {title}', 'Ajouter {title} au message': 'Add {title} to message',
+  'Ajouter au brouillon actif': 'Add to active draft', 'Page précédente': 'Previous page', 'Page suivante': 'Next page',
+  'Page {page} / {pages} · {count} cartes': 'Page {page} / {pages} · {count} cards',
+  'Aperçu fermé.': 'Preview closed.', 'Lecture du fichier interrompue.': 'File read interrupted.', 'Image illisible.': 'Unreadable image.',
+  '{count} image(s) source indisponible(s).': '{count} source image(s) unavailable.',
+  'Fichier {format} disponible. Ouvre sa session pour utiliser le lecteur natif.': '{format} file available. Open its session to use the native viewer.',
+  'Fermer': 'Close', 'Espace': 'Space', 'Création': 'Created', 'Origine': 'Origin', 'Dossier': 'Directory', 'Inconnu': 'Unknown',
+  'Ajouter au message': 'Add to message', 'Voir la session': 'View session',
+  'Destination : {title}. Seule la référence sera ajoutée.': 'Destination: {title}. Only the reference will be added.',
+  'Ouvre une conversation pour y ajouter cette référence.': 'Open a conversation to add this reference.',
+  'Aperçu depuis la source. Les anciennes demandes de réponse restent désactivées.': 'Preview from the source. Past answer requests remain disabled.',
+  'Chargement…': 'Loading…', 'Source indisponible.': 'Source unavailable.',
+  'Artefact : {title}\nEspace : {space}\nSession : {session} ({id})\nMessage : {message}\nSource : {source}\n{url}\nRéférence uniquement ; lire le fichier ou le message source si son contenu est demandé.': 'Artifact: {title}\nSpace: {space}\nSession: {session} ({id})\nMessage: {message}\nSource: {source}\n{url}\nReference only; read the file or source message if its content is requested.',
+  'Préférences de cette extension, conservées sur cette instance OpenChamber.': 'Extension preferences saved on this OpenChamber instance.',
+  'Langue': 'Language', 'Automatique (OpenChamber)': 'Automatic (OpenChamber)', 'Aperçus': 'Previews',
+  'Quand la vignette est visible': 'When the thumbnail is visible', 'À l’ouverture uniquement': 'Only when opened',
+  'Densité': 'Density', 'Confortable': 'Comfortable', 'Compacte': 'Compact', 'Cartes par page': 'Cards per page',
+  '12 cartes': '12 cards', '24 cartes': '24 cards', 'Actualisation automatique': 'Automatic refresh',
+  '2 lectures simultanées · 6 aperçus actifs maximum · pages de 12 ou 24 cartes. Les aperçus hors écran et ceux derrière une fenêtre sont déchargés. Ces limites ne plafonnent pas la RAM totale.': '2 concurrent reads · up to 6 active previews · 12 or 24 cards per page. Offscreen and modal-background previews unload. These limits do not cap total RAM.',
+  'L’apparence suit les couleurs, polices et arrondis transmis par OpenChamber. Le SDK 2.5.2 ne transmet pas l’échelle ni l’espacement de l’interface ; les polices externes peuvent utiliser une police de repli.': 'Appearance follows the colors, fonts and radii sent by OpenChamber. SDK 2.5.2 does not send interface scale or spacing; external fonts may use a fallback.',
+  'Cette version de la galerie fonctionne sur l’instance locale OpenChamber.': 'This gallery version runs on the local OpenChamber instance.',
+  'Préférences indisponibles ; réglages par défaut utilisés.': 'Preferences unavailable; using defaults.',
+  'Lecture impossible ({status}).': 'Read failed ({status}).', 'Connexion indisponible.': 'Connection unavailable.',
+  'Accès refusé.': 'Access denied.', 'Requête trop volumineuse.': 'Request too large.', 'Requête invalide.': 'Invalid request.',
+  'Projets, session ou hôte invalides.': 'Invalid projects, session or host.', 'Requête inconnue.': 'Unknown request.',
+  'Lecture impossible. Réessaie depuis la galerie.': 'Read failed. Try again from the gallery.',
+  'Adresse locale OpenChamber invalide.': 'Invalid local OpenChamber address.',
+  'Le service local OpenCode est indisponible. Ouvre OpenCode puis réessaie.': 'Local OpenCode service unavailable. Open OpenCode and try again.',
+  'Cette galerie utilise uniquement le service local OpenCode.': 'This gallery only uses the local OpenCode service.',
+  'La source a été supprimée ou déplacée.': 'The source was deleted or moved.',
+  'Réponse OpenCode invalide.': 'Invalid OpenCode response.', 'Pagination OpenCode répétée.': 'Repeated OpenCode pagination.',
+  'Index local illisible : il sera reconstruit depuis les sources.': 'Unreadable local index: it will be rebuilt from sources.',
+  'Classement Chats indisponible : ces sources restent non classées.': 'Chats classification unavailable: these sources remain unclassified.',
+  'Liste des projets OpenCode invalide.': 'Invalid OpenCode project list.',
+  'Lecture interrompue. Les références précédentes sont conservées ; réessaie.': 'Read interrupted. Previous references are preserved; try again.',
+  'Filtres invalides.': 'Invalid filters.', 'Référence introuvable.': 'Reference not found.',
+  'Cet artefact n’est plus présent dans son message source.': 'This artifact is no longer present in its source message.',
+  'Pièce jointe trop volumineuse pour cet aperçu.': 'Attachment too large for this preview.', 'La source n’est pas un fichier.': 'The source is not a file.',
+  'Fichier trop volumineux pour cet aperçu.': 'File too large for this preview.', 'Fichier source introuvable.': 'Source file not found.',
+  'Lecture du fichier source refusée.': 'Source file read denied.', 'Aperçu expiré : ouvre-le à nouveau.': 'Preview expired: reopen it.', 'Position invalide.': 'Invalid position.',
+  'Pièce jointe': 'Attachment', 'Capture navigateur': 'Browser capture', 'Fichier présenté': 'Presented file', 'Lien du message': 'Message link',
+};
+export function t(message: string, values: Record<string, string | number> = {}) {
+  const text = locale === 'fr' ? message : english[message] ?? message.replace(/^Lecture OpenCode refusée \((\d+)\)\.$/, 'OpenCode read denied ($1).');
+  return text.replace(/\{(\w+)\}/g, (match, key) => String(values[key] ?? match));
+}

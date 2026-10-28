@@ -1,0 +1,13 @@
+diff --git a/dist/ui/popup.js b/dist/ui/popup.js
+index e24c51bc2294e2713d2ce493f3b2da41e16b9e43..290fe34abf8ab258da7161643850a596a142cb3a 100644
+--- a/dist/ui/popup.js
++++ b/dist/ui/popup.js
+@@ -27,6 +27,8 @@ export const openPopup = (host, trigger, popup, close) => {
+         close();
+     };
+     const onScroll = (event) => {
++        // Text scrolling on input blur does not move the popup's anchor.
++        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+         if (event.target instanceof Node && popup.contains(event.target)) {
+             return;
+         }
